@@ -163,6 +163,10 @@ async function executeTool(name, parameters, message) {
       
       case 'createOrder': {
         const customerPhone = parameters?.customer?.phone || message?.call?.customer?.number;
+        
+        console.log('[Servio] Creating order with params:', JSON.stringify(parameters));
+        console.log('[Servio] Customer phone:', customerPhone);
+        
         const res = await fetch(
           `${SERVIO_BASE_URL}/api/orders`,
           {
@@ -175,11 +179,22 @@ async function executeTool(name, parameters, message) {
               ...parameters,
               restaurantId: RESTAURANT_ID,
               source: 'vapi_phone',
-              'customer.phone': customerPhone
+              customer: {
+                phone: customerPhone,
+                name: parameters?.customer?.name || 'Phone Customer'
+              }
             })
           }
         );
+        
         const data = await res.json();
+        console.log('[Servio] Create order response:', JSON.stringify(data));
+        
+        if (!res.ok) {
+          console.error('[Servio] Create order failed:', data);
+          return { ok: false, error: data.message || 'Failed to create order' };
+        }
+        
         return { 
           ok: true, 
           orderId: data.id || data.orderId,
