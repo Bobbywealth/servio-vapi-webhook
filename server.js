@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 });
 
 // Main webhook endpoint
-app.post('/webhook', async (req, res) => {
+app.post('/api/vapi/webhook', async (req, res) => {
   const { message } = req.body;
   
   console.log('📞 Vapi webhook received:', message?.type);
