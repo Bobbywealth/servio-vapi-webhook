@@ -176,13 +176,15 @@ async function executeTool(name, parameters, message) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              ...parameters,
-              restaurantId: RESTAURANT_ID,
+              restaurant_id: RESTAURANT_ID,
               source: 'vapi_phone',
+              items: parameters?.items || [],
+              order_type: parameters?.orderType || 'pickup',
               customer: {
                 phone: customerPhone,
                 name: parameters?.customer?.name || 'Phone Customer'
-              }
+              },
+              special_instructions: parameters?.specialInstructions || ''
             })
           }
         );
