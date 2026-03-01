@@ -8,9 +8,9 @@ const app = express();
 
 app.use(express.json());
 
-const SERVIO_BASE_URL = 'https://servio-backend-zexb.onrender.com';
-const SERVIO_API_KEY = 'sk_live_JBL8c15YgjU_H-zSQmyTWJL5dutg0JX7bJv3D4GV3h0';
-const RESTAURANT_ID = 'sasheys-kitchen-union';
+const SERVIO_BASE_URL = process.env.SERVIO_BASE_URL || 'https://servio-backend-zexb.onrender.com';
+const SERVIO_API_KEY = process.env.SERVIO_API_KEY;
+const RESTAURANT_ID = process.env.RESTAURANT_ID || 'sasheys-kitchen-union';
 
 // Health check
 app.get('/', (req, res) => {
