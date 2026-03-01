@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: servio-vapi-webhook
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18
+    healthCheckPath: /
+    plan: free

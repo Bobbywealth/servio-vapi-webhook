@@ -1,0 +1,12 @@
+{
+  "name": "servio-vapi-webhook",
+  "version": "1.0.0",
+  "description": "Webhook bridge between Vapi and Servio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
