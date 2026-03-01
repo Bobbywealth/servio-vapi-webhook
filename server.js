@@ -176,15 +176,13 @@ async function executeTool(name, parameters, message) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              restaurant_id: RESTAURANT_ID,
-              source: 'vapi_phone',
+              restaurantId: RESTAURANT_ID,
+              channel: 'phone',
+              externalId: `vapi-${Date.now()}`,
               items: parameters?.items || [],
-              order_type: parameters?.orderType || 'pickup',
-              customer: {
-                phone: customerPhone,
-                name: parameters?.customer?.name || 'Phone Customer'
-              },
-              special_instructions: parameters?.specialInstructions || ''
+              totalAmount: parameters?.total || 0,
+              customerName: parameters?.customer?.name || 'Phone Customer',
+              customerPhone: customerPhone
             })
           }
         );
