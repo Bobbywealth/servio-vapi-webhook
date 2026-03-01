@@ -225,43 +225,63 @@ async function executeTool(name, parameters, message) {
       case 'createOrder': {
         const customerPhone = parameters?.customer?.phone || message?.call?.customer?.number;
         
-        console.log('[Servio] Creating order with params:', JSON.stringify(parameters));
-        console.log('[Servio] Customer phone:', customerPhone);
+        console.log('[Servio] Creating order FAST...');
         
-        const res = await fetch(
-          `${SERVIO_BASE_URL}/api/orders`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${SERVIO_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              restaurantId: RESTAURANT_ID,
-              channel: 'phone',
-              externalId: `vapi-${Date.now()}`,
-              items: parameters?.items || [],
-              totalAmount: parameters?.total || 0,
-              customerName: parameters?.customer?.name || 'Phone Customer',
-              customerPhone: customerPhone
-            })
-          }
-        );
-        
-        const data = await res.json();
-        console.log('[Servio] Create order response:', JSON.stringify(data));
-        
-        if (!res.ok) {
-          console.error('[Servio] Create order failed:', data);
-          return { ok: false, error: data.message || 'Failed to create order' };
-        }
-        
-        return { 
-          ok: true, 
-          orderId: data.id || data.orderId,
-          total: data.total,
-          message: `Order placed! Your order number is ${(data.id || data.orderId).slice(-4)}.`
+        // Build order payload
+        const orderPayload = {
+          restaurantId: RESTAURANT_ID,
+          channel: 'phone',
+          externalId: `vapi-${Date.now()}`,
+          items: parameters?.items || [],
+          totalAmount: parameters?.total || parameters?.totalAmount || 0,
+          customerName: parameters?.customer?.name || 'Phone Customer',
+          customerPhone: customerPhone,
+          status: 'received',
+          source: 'vapi_phone'
         };
+        
+        // Create order with timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        try {
+          const res = await fetch(
+            `${SERVIO_BASE_URL}/api/orders`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${SERVIO_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(orderPayload),
+              signal: controller.signal
+            }
+          );
+          
+          clearTimeout(timeout);
+          
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            console.error('[Servio] Create order failed:', errorData);
+            return { ok: false, error: 'Failed to create order - please try again' };
+          }
+          
+          const data = await res.json();
+          const orderId = data.id || data.orderId || 'N/A';
+          
+          console.log('[Servio] Order created:', orderId);
+          
+          return { 
+            ok: true, 
+            orderId: orderId,
+            total: data.total || orderPayload.totalAmount,
+            message: `Perfect! Your order number is ${orderId.slice(-4)}. It'll be ready in about 15 minutes!`
+          };
+        } catch (error) {
+          clearTimeout(timeout);
+          console.error('[Servio] Order creation error:', error.message);
+          return { ok: false, error: 'Connection issue - please try again' };
+        }
       }
       
       case 'checkOrderStatus': {
