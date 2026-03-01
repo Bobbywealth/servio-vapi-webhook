@@ -117,33 +117,94 @@ async function executeTool(name, parameters, message) {
       }
       
       case 'searchMenu': {
-        const query = parameters?.query || parameters?.q || '';
-        const res = await fetch(
-          `${SERVIO_BASE_URL}/api/menu/search?q=${encodeURIComponent(query)}`,
+        const query = (parameters?.query || parameters?.q || '').toLowerCase();
+        
+        // Fetch full public menu
+        const menuRes = await fetch(
+          `${SERVIO_BASE_URL}/api/menu/public/${RESTAURANT_ID}`,
           { headers: { 'Authorization': `Bearer ${SERVIO_API_KEY}` } }
         );
-        const data = await res.json();
-        return { ok: true, items: data.items || data, count: (data.items || data).length };
+        const menuData = await menuRes.json();
+        const allItems = menuData?.data?.items || [];
+        
+        // Filter by query
+        const filtered = allItems.filter(item => 
+          item.name.toLowerCase().includes(query) ||
+          (item.description && item.description.toLowerCase().includes(query)) ||
+          (item.category_name && item.category_name.toLowerCase().includes(query))
+        );
+        
+        // Format for AI
+        const formatted = filtered.slice(0, 5).map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          fromPrice: item.fromPrice || item.price,
+          sizes: item.sizes || [],
+          category: item.category_name,
+          isAvailable: item.is_available,
+          description: item.description
+        }));
+        
+        return { ok: true, items: formatted, count: filtered.length };
       }
       
       case 'getMenuItem': {
         const itemId = parameters?.itemId || parameters?.id;
-        const res = await fetch(
-          `${SERVIO_BASE_URL}/api/menu/items/${itemId}`,
+        
+        // Fetch from public menu
+        const menuRes = await fetch(
+          `${SERVIO_BASE_URL}/api/menu/public/${RESTAURANT_ID}`,
           { headers: { 'Authorization': `Bearer ${SERVIO_API_KEY}` } }
         );
-        const item = await res.json();
-        return item ? { ok: true, found: true, item } : { ok: true, found: false };
+        const menuData = await menuRes.json();
+        const allItems = menuData?.data?.items || [];
+        
+        const item = allItems.find(i => i.id === itemId || i.name.toLowerCase() === itemId.toLowerCase());
+        
+        if (item) {
+          return { 
+            ok: true, 
+            found: true, 
+            item: {
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              fromPrice: item.fromPrice || item.price,
+              sizes: item.sizes || [],
+              category: item.category_name,
+              description: item.description,
+              isAvailable: item.is_available
+            }
+          };
+        }
+        return { ok: true, found: false };
       }
       
       case 'getItemModifiers': {
         const itemId = parameters?.itemId;
-        const res = await fetch(
-          `${SERVIO_BASE_URL}/api/menu/items/${itemId}/modifiers`,
+        
+        // Fetch from public menu
+        const menuRes = await fetch(
+          `${SERVIO_BASE_URL}/api/menu/public/${RESTAURANT_ID}`,
           { headers: { 'Authorization': `Bearer ${SERVIO_API_KEY}` } }
         );
-        const data = await res.json();
-        return { ok: true, modifiers: data.modifiers || data };
+        const menuData = await menuRes.json();
+        const allItems = menuData?.data?.items || [];
+        
+        const item = allItems.find(i => i.id === itemId || i.name.toLowerCase() === itemId.toLowerCase());
+        
+        if (item) {
+          const modifiers = {
+            sizes: item.sizes || [],
+            hasMultipleSizes: (item.sizes || []).length > 1,
+            sides: ['White Rice', 'Rice and Peas', 'Cabbage', 'Festival', 'Mac and Cheese', 'Plantains'],
+            gravyTypes: ['Brown', 'Red', 'Jerk', 'Curry'],
+            gravyAmounts: ['None', 'Light', 'Moderate', 'A lot']
+          };
+          return { ok: true, modifiers, itemName: item.name };
+        }
+        return { ok: false, error: 'Item not found' };
       }
       
       case 'quoteOrder': {
